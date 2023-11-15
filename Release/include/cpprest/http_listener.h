@@ -42,7 +42,7 @@ public:
     /// <summary>
     /// Create an http_listener configuration with default options.
     /// </summary>
-    http_listener_config() : m_timeout(utility::seconds(120)), m_backlog(0) {}
+    http_listener_config() : m_timeout(utility::seconds(120)), m_backlog(0), m_chunksize(0) { }
 
     /// <summary>
     /// Copy constructor.
@@ -51,6 +51,7 @@ public:
     http_listener_config(const http_listener_config& other)
         : m_timeout(other.m_timeout)
         , m_backlog(other.m_backlog)
+        , m_chunksize(0)
 #if !defined(_WIN32) || defined(CPPREST_FORCE_HTTP_LISTENER_ASIO)
         , m_ssl_context_callback(other.m_ssl_context_callback)
 #endif
@@ -64,6 +65,7 @@ public:
     http_listener_config(http_listener_config&& other)
         : m_timeout(std::move(other.m_timeout))
         , m_backlog(std::move(other.m_backlog))
+        , m_chunksize(0)
 #if !defined(_WIN32) || defined(CPPREST_FORCE_HTTP_LISTENER_ASIO)
         , m_ssl_context_callback(std::move(other.m_ssl_context_callback))
 #endif
@@ -80,6 +82,7 @@ public:
         {
             m_timeout = rhs.m_timeout;
             m_backlog = rhs.m_backlog;
+            m_chunksize = rhs.m_chunksize;
 #if !defined(_WIN32) || defined(CPPREST_FORCE_HTTP_LISTENER_ASIO)
             m_ssl_context_callback = rhs.m_ssl_context_callback;
 #endif
@@ -97,6 +100,7 @@ public:
         {
             m_timeout = std::move(rhs.m_timeout);
             m_backlog = std::move(rhs.m_backlog);
+            m_chunksize = std::move(rhs.m_chunksize);
 #if !defined(_WIN32) || defined(CPPREST_FORCE_HTTP_LISTENER_ASIO)
             m_ssl_context_callback = std::move(rhs.m_ssl_context_callback);
 #endif
@@ -130,6 +134,28 @@ public:
     /// default.</param> <remarks>The implementation may not honour this value.</remarks>
     void set_backlog(int backlog) { m_backlog = backlog; }
 
+    /// <summary>
+    /// Get the server chunk size.
+    /// </summary>
+    /// <returns>The internal buffer size used by the http server when sending and receiving data from the
+    /// network.</returns>
+    size_t chunksize() const { return m_chunksize == 0 ? 64 * 1024 : m_chunksize; }
+
+    /// <summary>
+    /// Sets the server chunk size.
+    /// </summary>
+    /// <param name="size">The internal buffer size used by the http server when sending and receiving data from the
+    /// network.</param> <remarks>This is a hint -- an implementation may disregard the setting and use some other chunk
+    /// size.</remarks>
+    void set_chunksize(size_t size) { m_chunksize = size; }
+
+    /// <summary>
+    /// Returns true if the default chunk size is in use.
+    /// <remarks>If true, implementations are allowed to choose whatever size is best.</remarks>
+    /// </summary>
+    /// <returns>True if default, false if set by user.</returns>
+    bool is_default_chunksize() const { return m_chunksize == 0; }
+
 #if !defined(_WIN32) || defined(CPPREST_FORCE_HTTP_LISTENER_ASIO)
     /// <summary>
     /// Get the callback of ssl context
@@ -154,6 +180,7 @@ public:
 private:
     utility::seconds m_timeout;
     int m_backlog;
+    size_t m_chunksize;
 #if !defined(_WIN32) || defined(CPPREST_FORCE_HTTP_LISTENER_ASIO)
     std::function<void(boost::asio::ssl::context&)> m_ssl_context_callback;
 #endif

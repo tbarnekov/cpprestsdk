@@ -32,8 +32,6 @@ using namespace http::details;
 using namespace http::experimental::listener;
 using namespace http::experimental::details;
 
-#define CHUNK_SIZE (64 * 1024)
-
 namespace web
 {
 namespace http
@@ -404,7 +402,7 @@ pplx::task<void> http_windows_server::respond(http::http_response response)
 }
 
 windows_request_context::windows_request_context()
-    : m_sending_in_chunks(false), m_transfer_encoding(false), m_remaining_to_write(0)
+    : m_sending_in_chunks(false), m_transfer_encoding(false), m_remaining_to_write(0), m_chunksize(64 * 1024)
 {
     auto* pServer = static_cast<http_windows_server*>(http_server_api::server_api());
     if (++pServer->m_numOutstandingRequests == 1)
@@ -593,11 +591,16 @@ void windows_request_context::read_headers_io_completion(DWORD error_code, DWORD
         m_msg._get_impl()->_prepare_to_receive_data();
         read_request_body_chunk();
 
+        auto listener = (web::http::experimental::listener::details::http_listener_impl*)m_request->UrlContext;
+        if (!listener->configuration().is_default_chunksize())
+        {
+            m_chunksize = listener->configuration().chunksize();
+        }
+
         // Dispatch request to the http_listener.
         if (badRequestMsg.empty())
         {
-            dispatch_request_to_listener(
-                (web::http::experimental::listener::details::http_listener_impl*)m_request->UrlContext);
+            dispatch_request_to_listener(listener);
         }
         else
         {
@@ -620,13 +623,13 @@ void windows_request_context::read_request_body_chunk()
     auto request_body_buf = m_msg._get_impl()->outstream().streambuf();
     if (!m_decompressor)
     {
-        body = request_body_buf.alloc(CHUNK_SIZE);
+        body = request_body_buf.alloc(m_chunksize);
     }
     else
     {
-        if (m_compress_buffer.size() < CHUNK_SIZE)
+        if (m_compress_buffer.size() < m_chunksize)
         {
-            m_compress_buffer.resize(CHUNK_SIZE);
+            m_compress_buffer.resize(m_chunksize);
         }
         body = m_compress_buffer.data();
     }
@@ -640,7 +643,7 @@ void windows_request_context::read_request_body_chunk()
                                                           m_request_id,
                                                           HTTP_RECEIVE_REQUEST_ENTITY_BODY_FLAG_FILL_BUFFER,
                                                           (PVOID)body,
-                                                          CHUNK_SIZE,
+                                                          m_chunksize,
                                                           NULL,
                                                           &m_overlapped);
 
@@ -684,14 +687,14 @@ void windows_request_context::read_body_io_completion(DWORD error_code, DWORD by
 
             do
             {
-                auto body = request_body_buf.alloc(CHUNK_SIZE);
+                auto body = request_body_buf.alloc(m_chunksize);
                 try
                 {
                     bool done_unused;
                     got = m_decompressor->decompress(m_compress_buffer.data() + total_used,
                                                      bytes_read - total_used,
                                                      body,
-                                                     CHUNK_SIZE,
+                                                     m_chunksize,
                                                      http::compression::operation_hint::has_more,
                                                      used,
                                                      done_unused);
@@ -1022,12 +1025,12 @@ void windows_request_context::transmit_body()
     }
 
     msl::safeint3::SafeInt<size_t> safeCount = m_remaining_to_write;
-    size_t next_chunk_size = safeCount.Min(CHUNK_SIZE);
+    size_t next_chunk_size = safeCount.Min(m_chunksize);
 
     // In both cases here we could perform optimizations to try and use acquire on the streams to avoid an extra copy.
     if (m_sending_in_chunks)
     {
-        m_body_data.resize(CHUNK_SIZE);
+        m_body_data.resize(m_chunksize);
 
         streams::rawptr_buffer<unsigned char> buf(&m_body_data[0], next_chunk_size);
 
@@ -1065,7 +1068,7 @@ void windows_request_context::transmit_body()
         if (m_compressor)
         {
             // ...and compressing.  For simplicity, we allocate a buffer that's "too large to fail" while compressing.
-            const size_t body_data_length = 2 * CHUNK_SIZE + http::details::chunked_encoding::additional_encoding_space;
+            const size_t body_data_length = 2 * m_chunksize + http::details::chunked_encoding::additional_encoding_space;
             m_body_data.resize(body_data_length);
 
             // We'll read into a temporary buffer before compressing
@@ -1144,7 +1147,7 @@ void windows_request_context::transmit_body()
         }
         else
         {
-            const size_t body_data_length = CHUNK_SIZE + http::details::chunked_encoding::additional_encoding_space;
+            const size_t body_data_length = m_chunksize + http::details::chunked_encoding::additional_encoding_space;
             m_body_data.resize(body_data_length);
 
             streams::rawptr_buffer<unsigned char> buf(&m_body_data[http::details::chunked_encoding::data_offset],

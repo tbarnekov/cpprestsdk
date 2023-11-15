@@ -128,6 +128,7 @@ struct windows_request_context : http::details::_http_server_context
     bool m_transfer_encoding;
 
     size_t m_remaining_to_write;
+    size_t m_chunksize;
 
     HTTP_REQUEST* m_request;
     std::unique_ptr<unsigned char[]> m_request_buffer;
