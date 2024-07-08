@@ -67,12 +67,10 @@ template<typename CharType>
 class JSON_Parser
 {
 public:
-    JSON_Parser() : m_currentLine(1), m_currentColumn(1), m_currentParsingDepth(0) {}
-
     struct Location
     {
-        size_t m_line;
-        size_t m_column;
+        size_t m_line = 0;
+        size_t m_column = 0;
     };
 
     struct Token
@@ -95,22 +93,20 @@ public:
             TKN_Comment
         };
 
-        Token() : kind(TKN_EOF) {}
-
-        Kind kind;
+        Kind kind = TKN_EOF;
         std::basic_string<CharType> string_val;
 
         typename JSON_Parser<CharType>::Location start;
 
         union {
-            double double_val;
+            double double_val = 0.0;
             int64_t int64_val;
             uint64_t uint64_val;
             bool boolean_val;
             bool has_unescape_symbol;
         };
 
-        bool signed_number;
+        bool signed_number = false;
 
         std::error_code m_error;
     };
@@ -152,7 +148,7 @@ private:
     std::unique_ptr<web::json::details::_Value> _ParseObject(typename JSON_Parser<CharType>::Token& tkn);
     std::unique_ptr<web::json::details::_Value> _ParseArray(typename JSON_Parser<CharType>::Token& tkn);
 
-    JSON_Parser& operator=(const JSON_Parser&);
+    JSON_Parser& operator=(const JSON_Parser&) = delete;
 
     int_type EatWhitespace();
 
@@ -172,9 +168,9 @@ private:
     }
 
 protected:
-    size_t m_currentLine;
-    size_t m_currentColumn;
-    size_t m_currentParsingDepth;
+    size_t m_currentLine = 1;
+    size_t m_currentColumn = 1;
+    size_t m_currentParsingDepth = 0;
 
 // The DEBUG macro is defined in XCode but we don't in our CMakeList
 // so for now we will keep the same on debug and release. In the future
@@ -225,7 +221,6 @@ protected:
     virtual bool CompleteStringLiteral(typename JSON_Parser<CharType>::Token& token);
 
 private:
-    bool finish_parsing_string_with_unescape_char(typename JSON_Parser<CharType>::Token& token);
     const CharType* m_position;
     const CharType* m_startpos;
     const CharType* m_endpos;

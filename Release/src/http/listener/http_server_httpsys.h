@@ -122,15 +122,15 @@ struct windows_request_context : http::details::_http_server_context
     pplx::task_completion_event<void> m_response_completed;
 
     // Id of the currently processed request on this connection.
-    HTTP_REQUEST_ID m_request_id;
+    HTTP_REQUEST_ID m_request_id = 0;
 
-    bool m_sending_in_chunks;
-    bool m_transfer_encoding;
+    bool m_sending_in_chunks = false;
+    bool m_transfer_encoding = false;
 
-    size_t m_remaining_to_write;
-    size_t m_chunksize;
+    size_t m_remaining_to_write = 0;
+    size_t m_chunksize = 64 * 1024;
 
-    HTTP_REQUEST* m_request;
+    HTTP_REQUEST* m_request = nullptr;
     std::unique_ptr<unsigned char[]> m_request_buffer;
 
     std::unique_ptr<HTTP_UNKNOWN_HEADER[]> m_headers;
@@ -147,11 +147,11 @@ struct windows_request_context : http::details::_http_server_context
     std::unique_ptr<web::http::compression::compress_provider> m_compressor;
     std::unique_ptr<web::http::compression::decompress_provider> m_decompressor;
     utility::string_t m_decompress_header;
-    http::compression::details::header_types m_decompress_header_type;
+    http::compression::details::header_types m_decompress_header_type = http::compression::details::header_types::none;
 
 private:
-    windows_request_context(const windows_request_context&);
-    windows_request_context& operator=(const windows_request_context&);
+    windows_request_context(const windows_request_context&) = delete;
+    windows_request_context& operator=(const windows_request_context&) = delete;
 
     // Sends entity body chunk.
     void send_entity_body(_In_reads_(data_length) unsigned char* data, _In_ size_t data_length);
@@ -231,17 +231,17 @@ private:
         _M_registeredListeners;
 
     // HTTP Server API server session id.
-    HTTP_SERVER_SESSION_ID m_serverSessionId;
+    HTTP_SERVER_SESSION_ID m_serverSessionId = 0;
 
     // Tracks the number of outstanding requests being processed.
     std::atomic<int> m_numOutstandingRequests;
     pplx::extensibility::event_t m_zeroOutstandingRequests;
 
     // Handle to HTTP Server API request queue.
-    HANDLE m_hRequestQueue;
+    HANDLE m_hRequestQueue = 0;
 
     // Threadpool I/O structure for overlapped I/O.
-    TP_IO* m_threadpool_io;
+    TP_IO* m_threadpool_io = nullptr;
 
     // Task which actually handles receiving requests from HTTP Server API request queue.
     pplx::task<void> m_receivingTask;

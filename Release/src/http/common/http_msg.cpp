@@ -415,8 +415,8 @@ struct inline_continuation
     std::function<void(pplx::task<void>)> m_next;
 
 private:
-    inline_continuation(const inline_continuation&);
-    inline_continuation& operator=(const inline_continuation&);
+    inline_continuation(const inline_continuation&) = delete;
+    inline_continuation& operator=(const inline_continuation&) = delete;
 };
 
 void http_msg_base::_complete(utility::size64_t body_size, const std::exception_ptr& exceptionPtr)
@@ -442,7 +442,7 @@ void http_msg_base::_complete(utility::size64_t body_size, const std::exception_
 
     if (exceptionPtr == std::exception_ptr())
     {
-        inline_continuation(closeTask, [completionEvent, body_size](pplx::task<void> t) {
+        inline_continuation x(closeTask, [completionEvent, body_size](pplx::task<void> t) {
             try
             {
                 t.get();
@@ -466,7 +466,7 @@ void http_msg_base::_complete(utility::size64_t body_size, const std::exception_
     }
     else
     {
-        inline_continuation(closeTask, [completionEvent, exceptionPtr](pplx::task<void> t) {
+        inline_continuation x(closeTask, [completionEvent, exceptionPtr](pplx::task<void> t) {
             // If closing stream throws an exception ignore since we already have an error.
             try
             {

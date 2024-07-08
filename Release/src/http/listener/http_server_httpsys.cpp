@@ -402,7 +402,6 @@ pplx::task<void> http_windows_server::respond(http::http_response response)
 }
 
 windows_request_context::windows_request_context()
-    : m_sending_in_chunks(false), m_transfer_encoding(false), m_remaining_to_write(0), m_chunksize(64 * 1024)
 {
     auto* pServer = static_cast<http_windows_server*>(http_server_api::server_api());
     if (++pServer->m_numOutstandingRequests == 1)

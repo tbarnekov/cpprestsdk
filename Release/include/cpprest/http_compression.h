@@ -263,6 +263,7 @@ namespace details
 /// </summary>
 enum header_types
 {
+    none,
     transfer_encoding,
     content_encoding,
     te,

@@ -48,7 +48,7 @@ public:
 
 private:
     std::vector<char> m_buffer;
-    size_t m_numCharacters;
+    size_t m_numCharacters = 0;
 };
 #endif // __cplusplus_winrt
 #endif // _WIN32_WINNT >= _WIN32_WINNT_VISTA

@@ -42,13 +42,13 @@ public:
     /// <summary>
     /// Create an http_listener configuration with default options.
     /// </summary>
-    http_listener_config() : m_timeout(utility::seconds(120)), m_backlog(0), m_chunksize(0) { }
+    http_listener_config() = default;
 
     /// <summary>
     /// Copy constructor.
     /// </summary>
     /// <param name="other">http_listener_config to copy.</param>
-    http_listener_config(const http_listener_config& other)
+    http_listener_config(const http_listener_config& other) noexcept
         : m_timeout(other.m_timeout)
         , m_backlog(other.m_backlog)
         , m_chunksize(0)
@@ -62,7 +62,7 @@ public:
     /// Move constructor.
     /// <summary>
     /// <param name="other">http_listener_config to move from.</param>
-    http_listener_config(http_listener_config&& other)
+    http_listener_config(http_listener_config&& other) noexcept
         : m_timeout(std::move(other.m_timeout))
         , m_backlog(std::move(other.m_backlog))
         , m_chunksize(0)
@@ -94,7 +94,7 @@ public:
     /// Assignment operator.
     /// </summary>
     /// <returns>http_listener_config instance.</returns>
-    http_listener_config& operator=(http_listener_config&& rhs)
+    http_listener_config& operator=(http_listener_config&& rhs) noexcept
     {
         if (this != &rhs)
         {
@@ -178,9 +178,9 @@ public:
 #endif
 
 private:
-    utility::seconds m_timeout;
-    int m_backlog;
-    size_t m_chunksize;
+    utility::seconds m_timeout = utility::seconds(120);
+    int m_backlog = 0;
+    size_t m_chunksize = 0;
 #if !defined(_WIN32) || defined(CPPREST_FORCE_HTTP_LISTENER_ASIO)
     std::function<void(boost::asio::ssl::context&)> m_ssl_context_callback;
 #endif
@@ -337,13 +337,13 @@ public:
     /// Move constructor.
     /// </summary>
     /// <param name="other">http_listener instance to construct this one from.</param>
-    http_listener(http_listener&& other) : m_impl(std::move(other.m_impl)) {}
+    http_listener(http_listener&& other) noexcept : m_impl(std::move(other.m_impl)) {}
 
     /// <summary>
     /// Move assignment operator.
     /// </summary>
     /// <param name="other">http_listener to replace this one with.</param>
-    http_listener& operator=(http_listener&& other)
+    http_listener& operator=(http_listener&& other) noexcept
     {
         if (this != &other)
         {

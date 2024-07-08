@@ -154,13 +154,13 @@ public:
     /// Move constructor.
     /// </summary>
     /// <param name="other">An <c>http_headers</c> object to move.</param>
-    http_headers(http_headers&& other) : m_headers(std::move(other.m_headers)) {}
+    http_headers(http_headers&& other) noexcept : m_headers(std::move(other.m_headers)) {}
 
     /// <summary>
     /// Move assignment operator.
     /// </summary>
     /// <param name="other">An <c>http_headers</c> object to move.</param>
-    http_headers& operator=(http_headers&& other)
+    http_headers& operator=(http_headers&& other) noexcept
     {
         if (this != &other)
         {
@@ -168,6 +168,11 @@ public:
         }
         return *this;
     }
+
+    /// <summary>
+    /// Destructor.
+    /// </summary>
+    ~http_headers() = default;
 
     /// <summary>
     /// Adds a header field using the '&lt;&lt;' operator.
