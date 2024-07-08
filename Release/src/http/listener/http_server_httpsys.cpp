@@ -643,7 +643,7 @@ void windows_request_context::read_request_body_chunk()
                                                           m_request_id,
                                                           HTTP_RECEIVE_REQUEST_ENTITY_BODY_FLAG_FILL_BUFFER,
                                                           (PVOID)body,
-                                                          m_chunksize,
+                                                          static_cast<ULONG>(m_chunksize),
                                                           NULL,
                                                           &m_overlapped);
 
