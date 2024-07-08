@@ -332,6 +332,26 @@ size_t http_msg_base::_get_content_length(bool honor_compression)
     {
         size_t content_length;
         utility::string_t transfer_encoding;
+        utility::string_t content_encoding;
+
+        if (headers().match(header_names::content_encoding, content_encoding))
+        {
+            // Transfer encoding is set; it trumps any content length that may or may not be present
+            if (honor_compression && m_compressor)
+            {
+                http::http_headers tmp;
+
+                // Build a header for comparison with the existing one
+                tmp.add(header_names::content_encoding, m_compressor->algorithm());
+
+                if (!utility::details::str_iequal(content_encoding, tmp[header_names::content_encoding]))
+                {
+                    // Some external entity added this header, and it doesn't match our
+                    // expectations; bail out, since the caller's intentions are not clear
+                    throw http_exception("Content-Encoding header is internally managed when compressing");
+                }
+            }
+        }
 
         if (headers().match(header_names::transfer_encoding, transfer_encoding))
         {
@@ -341,7 +361,6 @@ size_t http_msg_base::_get_content_length(bool honor_compression)
                 http::http_headers tmp;
 
                 // Build a header for comparison with the existing one
-                tmp.add(header_names::transfer_encoding, m_compressor->algorithm());
                 tmp.add(header_names::transfer_encoding, _XPLATSTR("chunked"));
 
                 if (!utility::details::str_iequal(transfer_encoding, tmp[header_names::transfer_encoding]))
@@ -351,16 +370,20 @@ size_t http_msg_base::_get_content_length(bool honor_compression)
                     throw http_exception("Transfer-Encoding header is internally managed when compressing");
                 }
             }
-
-            return (std::numeric_limits<size_t>::max)();
         }
 
         if (honor_compression && m_compressor)
         {
             // A compressor is set; this implies transfer encoding, since we don't know the compressed length
             // up front for content encoding.  We return the uncompressed length if we can figure it out.
-            headers().add(header_names::transfer_encoding, m_compressor->algorithm());
-            headers().add(header_names::transfer_encoding, _XPLATSTR("chunked"));
+            if (!headers().has(header_names::content_encoding))
+            {
+                headers().add(header_names::content_encoding, m_compressor->algorithm());
+            }
+            if (!headers().has(header_names::transfer_encoding))
+            {
+                headers().add(header_names::transfer_encoding, _XPLATSTR("chunked"));
+            }
             return (std::numeric_limits<size_t>::max)();
         }
 

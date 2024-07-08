@@ -501,7 +501,7 @@ void windows_request_context::read_headers_io_completion(DWORD error_code, DWORD
         // See if we need to compress or decompress the incoming request body, and if so, prepare for it
         try
         {
-            if (m_msg.headers().match(header_names::transfer_encoding, header))
+            if (!m_decompressor && m_msg.headers().match(header_names::transfer_encoding, header))
             {
                 try
                 {
@@ -520,7 +520,8 @@ void windows_request_context::read_headers_io_completion(DWORD error_code, DWORD
                     m_decompress_header = std::move(header);
                 }
             }
-            else if (m_msg.headers().match(header_names::content_encoding, header))
+            
+            if (!m_decompressor && m_msg.headers().match(header_names::content_encoding, header))
             {
                 try
                 {
@@ -539,19 +540,21 @@ void windows_request_context::read_headers_io_completion(DWORD error_code, DWORD
                     m_decompress_header = std::move(header);
                 }
             }
-            else if (m_msg.headers().match(header_names::te, header))
+
+            if (!m_compressor && m_msg.headers().match(header_names::te, header))
             {
                 // Note that init_response_headers throws away m_msg, so we need to set our compressor here.  If
                 // the header contains all unsupported algorithms, it's not an error -- we just won't compress
                 m_compressor = http::compression::details::get_compressor_from_header(
                     header, http::compression::details::header_types::te);
             }
-            else if (m_msg.headers().match(header_names::accept_encoding, header))
+            
+            if (!m_compressor && m_msg.headers().match(header_names::accept_encoding, header))
             {
                 // This would require pre-compression of the input stream, since we MUST send Content-Length, so we'll
                 // (legally) ignore it
-                // m_compressor = http::compression::details::get_compressor_from_header(header,
-                // http::compression::details::header_types:accept_encoding);
+                m_compressor = http::compression::details::get_compressor_from_header(
+                    header, http::compression::details::header_types::accept_encoding);
             }
         }
         catch (http_exception& e)
@@ -878,6 +881,10 @@ void windows_request_context::async_process_response()
         {
             // Content-Length should not be sent with Transfer-Encoding
             m_response.headers().remove(header_names::content_length);
+        }
+        if (m_response.headers().has(header_names::content_encoding))
+        {
+            m_response.headers().remove(header_names::content_encoding);
         }
         if (!m_response._get_impl()->compressor())
         {
