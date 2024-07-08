@@ -26,7 +26,7 @@ namespace details
 {
 struct uri_components
 {
-    uri_components() : m_path(_XPLATSTR("/")), m_port(-1) {}
+    uri_components() : m_path(_XPLATSTR("/")), m_port(0) {}
 
     uri_components(const uri_components&) = default;
     uri_components& operator=(const uri_components&) = default;
