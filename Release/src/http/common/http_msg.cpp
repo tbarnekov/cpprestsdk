@@ -384,6 +384,10 @@ size_t http_msg_base::_get_content_length(bool honor_compression)
             {
                 headers().add(header_names::transfer_encoding, _XPLATSTR("chunked"));
             }
+            if (headers().has(header_names::content_length))
+            {
+                headers().remove(header_names::content_length);
+            }
             return (std::numeric_limits<size_t>::max)();
         }
 
