@@ -553,8 +553,8 @@ void windows_request_context::read_headers_io_completion(DWORD error_code, DWORD
             {
                 // This would require pre-compression of the input stream, since we MUST send Content-Length, so we'll
                 // (legally) ignore it
-                m_compressor = http::compression::details::get_compressor_from_header(
-                    header, http::compression::details::header_types::accept_encoding);
+                // m_compressor = http::compression::details::get_compressor_from_header(header,
+                // http::compression::details::header_types:accept_encoding);
             }
         }
         catch (http_exception& e)
